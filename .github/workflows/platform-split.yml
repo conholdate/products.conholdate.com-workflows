@@ -1,0 +1,59 @@
+name: Split-Platform
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        type: environment
+        default: staging
+        required: true
+jobs:
+  deploy:
+    runs-on: macos-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        configure_one_platform:
+          - java
+          - net
+    steps:
+      - name: Checkout theme repo
+        uses: actions/checkout@main
+        with:
+          repository: conholdate/total.conholdate.com-products
+          token: ${{ secrets.REPO_TOKEN }}
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2.4.13
+        with:
+          hugo-version: 0.101.0
+          extended: true
+      - name: Install Node.js dependencies
+        run: npm install
+      - name: Configure build environment
+        env:
+          CONFIGURE_ONE_PLATFORM: ${{ matrix.configure_one_platform }}
+        run: npm run splitbyplatform
+      - name: Display platform.json
+        run: cat /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/platform.json
+      - name: Build ${{ matrix.configure_one_platform }}
+        run: hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}" --cleanDestinationDir --minify
+          --templateMetrics --templateMetricsHints --enableGitInfo
+      - name: Prepare public folder
+        run: |
+            find /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
+            mv /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
+      - name: Deploy ${{ matrix.configure_one_platform }} to S3
+        run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
