@@ -44,7 +44,7 @@ jobs:
           CONFIGURE_ONE_PLATFORM: ${{ matrix.configure_one_platform }}
         run: npm run splitbyplatform
       - name: Display platform.json
-        run: cat /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/platform.json
+        run: cat /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/platform.json
       - name: Build ${{ matrix.configure_one_platform }}
         run: hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}" --cleanDestinationDir --minify
           --templateMetrics --templateMetricsHints --enableGitInfo
