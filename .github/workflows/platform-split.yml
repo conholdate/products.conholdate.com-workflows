@@ -50,8 +50,8 @@ jobs:
           --templateMetrics --templateMetricsHints --enableGitInfo
       - name: Prepare public folder
         run: |
-            find /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
-            mv /Users/runner/work/total.conholdate.com-products/total.conholdate.com-products/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
+            find /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
+            mv /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
       - name: Deploy ${{ matrix.configure_one_platform }} to S3
         run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}"
         env:
