@@ -1,4 +1,4 @@
-name: Split-Platform
+name: Products
 on:
   workflow_dispatch:
     inputs:
