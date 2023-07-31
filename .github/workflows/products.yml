@@ -44,14 +44,14 @@ jobs:
           CONFIGURE_ONE_PLATFORM: ${{ matrix.configure_one_platform }}
         run: npm run splitbyplatform
       - name: Display platform.json
-        run: cat /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/platform.json
+        run: cat /Users/runner/work/total.conholdate.com-workflows/total.conholdate.com-workflows/platform.json
       - name: Build ${{ matrix.configure_one_platform }}
         run: hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}" --cleanDestinationDir --minify
           --templateMetrics --templateMetricsHints --enableGitInfo
       - name: Prepare public folder
         run: |
-            find /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
-            mv /Users/runner/work/total.conholdate.com-products-workflows/total.conholdate.com-products-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
+            find /Users/runner/work/total.conholdate.com-workflows/total.conholdate.com-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
+            mv /Users/runner/work/total.conholdate.com-workflows/total.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
       - name: Deploy ${{ matrix.configure_one_platform }} to S3
         run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}"
         env:
