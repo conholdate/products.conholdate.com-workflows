@@ -1,4 +1,4 @@
-name: Products-NET
+name: Products-NET-macOS-13
 on:
   workflow_dispatch:
     inputs:
