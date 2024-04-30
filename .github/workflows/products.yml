@@ -9,7 +9,7 @@ on:
         required: true
 jobs:
   deploy:
-    runs-on: macos-latest
+    runs-on: macos-13
     environment: ${{ github.event.inputs.environment }}
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
