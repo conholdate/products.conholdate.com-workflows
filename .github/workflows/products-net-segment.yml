@@ -1,4 +1,4 @@
-name: Products-NET-macOS-13
+name: Products-NET-Segment-macOS-13
 
 on:
   workflow_dispatch:
