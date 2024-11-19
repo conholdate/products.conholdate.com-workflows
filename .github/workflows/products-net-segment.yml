@@ -1,0 +1,87 @@
+name: Products-NET-macOS-13
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        type: environment
+        default: staging
+        required: true
+
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - english
+          - french
+          - chinese
+          - russian
+          - turkish
+          - portuguese
+          - arabic
+          - spanish
+          - japanese
+          - german
+          - swedish
+          - italian
+          - danish
+          - greek
+          - hebrew
+          - korean
+          - bulgarian
+          - polish
+          - thai
+          - indonesian
+          - czech
+          - persian
+          - ukrainian
+          - vietnamese
+    runs-on: macos-13
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+    steps:
+      - name: Checkout theme repo
+        uses: actions/checkout@main
+        with:
+          repository: conholdate/products.conholdate.com
+          token: ${{ secrets.REPO_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2.4.13
+        with:
+          hugo-version: 0.101.0
+          extended: true
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Generate platform.json for ${{ matrix.language }}
+        env:
+          CONFIGURE_ONE_PLATFORM: net
+        run: |
+          echo "Generating platform.json for $CONFIGURE_ONE_PLATFORM and ${{ matrix.language }}"
+          CONFIGURE_ONE_PLATFORM=${{ matrix.language }} node splitbyplatform.js
+          cat platform.json
+
+      - name: Build ${{ matrix.language }}
+        run: |
+          hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}/net/${{ matrix.language }}" --cleanDestinationDir --minify
+          find public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.language }}.xml \;
+
+      - name: Deploy ${{ matrix.language }} to S3
+        run: |
+          hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
