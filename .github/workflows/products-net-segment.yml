@@ -71,7 +71,7 @@ jobs:
           CONFIGURE_ONE_PLATFORM: net
         run: |
           echo "Generating platform.json for $CONFIGURE_ONE_PLATFORM and ${{ matrix.language }}"
-          CONFIGURE_ONE_PLATFORM=${{ matrix.language }} node splitbyplatform.js
+          CONFIGURE_ONE_PLATFORM=${{ matrix.language }} node ./scripts/splitbyplatform.js
           cat platform.json
 
       - name: Build ${{ matrix.language }}
