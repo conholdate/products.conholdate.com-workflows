@@ -1,4 +1,4 @@
-name: Products-NET-segment-NEW
+name: Products-NET-Segment
 
 on:
   workflow_dispatch:
