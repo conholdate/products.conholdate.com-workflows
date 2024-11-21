@@ -1,4 +1,4 @@
-name: Products-NET-Segment-macOS-13
+name: Products-NET-macOS-13
 
 on:
   workflow_dispatch:
@@ -11,36 +11,36 @@ on:
 
 jobs:
   deploy:
+    runs-on: macos-13
+    environment: ${{ github.event.inputs.environment }}
     strategy:
       fail-fast: false
       matrix:
         language:
-          - english
-          - french
-          - chinese
-          - russian
-          - turkish
-          - portuguese
-          - arabic
-          - spanish
-          - japanese
-          - german
-          - swedish
-          - italian
-          - danish
-          - greek
-          - hebrew
-          - korean
-          - bulgarian
-          - polish
-          - thai
-          - indonesian
-          - czech
-          - persian
-          - ukrainian
-          - vietnamese
-    runs-on: macos-13
-    environment: ${{ github.event.inputs.environment }}
+          - english:en
+          - french:fr
+          - chinese:zh
+          - russian:ru
+          - turkish:tr
+          - portuguese:pt
+          - arabic:ar
+          - spanish:es
+          - japanese:ja
+          - german:de
+          - swedish:sv
+          - italian:it
+          - danish:da
+          - greek:el
+          - hebrew:he
+          - korean:ko
+          - bulgarian:bg
+          - polish:pl
+          - thai:th
+          - indonesian:id
+          - czech:cs
+          - persian:fa
+          - ukrainian:uk
+          - vietnamese:vi
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
@@ -66,22 +66,62 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install
 
+      - name: Extract Language Details
+        run: |
+          LANGUAGE_FOLDER=${{ matrix.language%%:* }}
+          LANGUAGE_CODE=${{ matrix.language#*: }}
+          echo "Language folder: $LANGUAGE_FOLDER"
+          echo "Language code: $LANGUAGE_CODE"
+          echo "LANGUAGE_FOLDER=$LANGUAGE_FOLDER" >> $GITHUB_ENV
+          echo "LANGUAGE_CODE=$LANGUAGE_CODE" >> $GITHUB_ENV
+
       - name: Generate platform.json for ${{ matrix.language }}
         env:
           CONFIGURE_ONE_PLATFORM: net
         run: |
-          echo "Generating platform.json for $CONFIGURE_ONE_PLATFORM and ${{ matrix.language }}"
-          CONFIGURE_ONE_PLATFORM=${{ matrix.language }} node ./scripts/splitbyplatform.js
+          echo "Generating platform.json for $CONFIGURE_ONE_PLATFORM and $LANGUAGE_CODE"
+          CONFIGURE_ONE_PLATFORM=$LANGUAGE_FOLDER node ./scripts/splitbyplatform.js
           cat platform.json
 
       - name: Build ${{ matrix.language }}
         run: |
-          hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}/net/${{ matrix.language }}" --cleanDestinationDir --minify
-          find public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.language }}.xml \;
+          if [ "${{ env.LANGUAGE_CODE }}" = "en" ]; then
+            hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}" \
+                 --destination "public" \
+                 --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
+          else
+            hugo --config "./split-build-config.toml","./platform.json" -b "${{ vars.BASEURL }}/${{ env.LANGUAGE_CODE }}" \
+                 --destination "public/${{ env.LANGUAGE_CODE }}" \
+                 --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
+          fi
+          find public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ env.LANGUAGE_CODE }}.xml \;
+
+      - name: Prepare public folder for ${{ matrix.language }}
+        run: |
+          mv public/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps-${{ env.LANGUAGE_CODE }}.xml;
 
       - name: Deploy ${{ matrix.language }} to S3
         run: |
-          hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
+          if [ "${{ env.LANGUAGE_CODE }}" = "en" ]; then
+            hugo deploy --config "./split-build-config.toml" --target "${{ github.event.inputs.environment }}" \
+                 --destination "s3://products.conholdate.com/" \
+                 --invalidateCDN
+          else
+            hugo deploy --config "./split-build-config.toml" --target "${{ github.event.inputs.environment }}" \
+                 --destination "s3://products.conholdate.com/${{ env.LANGUAGE_CODE }}" \
+                 --invalidateCDN
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+
+  cdn-invalidation:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Invalidate CloudFront CDN
+        run: |
+          aws cloudfront create-invalidation --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
