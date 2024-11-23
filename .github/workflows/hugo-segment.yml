@@ -16,6 +16,9 @@ on:
       disableLanguages:
         description: Disabled Languages
         type: string
+      bucket:
+        description: Disabled Languages
+        type: string
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -31,14 +34,16 @@ jobs:
           hugo-version: latest
           extended: true
       - uses: actions/setup-node@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.SECRET_ACCESS }}
+          aws-region: us-west-2
 
       - name: Build
         env:
           HUGO_DISABLELANGUAGES: "${{ github.event.inputs.disableLanguages }}"
-        run: hugo --environment "${{ github.event.inputs.environment }}" --minify --enableGitInfo --printMemoryUsage --renderSegments "${{ github.event.inputs.segment }}"
+        run: hugo --minify --enableGitInfo --printMemoryUsage --renderSegments "${{ github.event.inputs.segment }}"
 
-      - name: Deploy
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
-        run: hugo deploy --maxDeletes=0 --environment "${{ github.event.inputs.environment }}"
+      - name: Upload to S3
+        run: aws s3 sync public s3://${{ github.event.inputs.bucket }}
