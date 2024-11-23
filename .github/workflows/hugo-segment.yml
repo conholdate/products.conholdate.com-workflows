@@ -1,14 +1,9 @@
 name: Hugo Segment
-run-name: Hugo (${{ github.event.inputs.segment }} - ${{ github.event.inputs.environment }})
+run-name: Hugo (${{ github.event.inputs.segment }} - ${{ github.event.inputs.bucket }})
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: Deployment Environment
-        type: environment
-        default: staging
-        required: true
       segment:
         description: Hugo Segment
         type: string
@@ -17,7 +12,7 @@ on:
         description: Disabled Languages
         type: string
       bucket:
-        description: Disabled Languages
+        description: Deployment Bucket
         type: string
 jobs:
   deploy:
@@ -45,5 +40,5 @@ jobs:
           HUGO_DISABLELANGUAGES: "${{ github.event.inputs.disableLanguages }}"
         run: hugo --minify --enableGitInfo --printMemoryUsage --renderSegments "${{ github.event.inputs.segment }}"
 
-      - name: Upload to S3
+      - name: Upload to ${{ github.event.inputs.bucket }} bucket
         run: aws s3 sync public s3://${{ github.event.inputs.bucket }}
