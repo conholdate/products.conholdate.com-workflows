@@ -7,7 +7,6 @@ on:
       segment:
         description: Hugo Segment
         type: string
-        required: true
       disableLanguages:
         description: Disabled Languages
         type: string
