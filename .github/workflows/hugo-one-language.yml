@@ -10,7 +10,10 @@ on:
         options: [ar, de, en]
       bucket:
         description: Deployment Bucket
-        type: string
+        type: choice
+        options:
+          - products-qa.conholdate.com
+          - products.conholdate.com
 jobs:
   deploy:
     runs-on: ubuntu-latest
