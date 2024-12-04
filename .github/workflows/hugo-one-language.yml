@@ -6,7 +6,8 @@ on:
     inputs:
       language:
         description: Language
-        type: string
+        type: choice
+        options: [ar, de, en]
       bucket:
         description: Deployment Bucket
         type: string
