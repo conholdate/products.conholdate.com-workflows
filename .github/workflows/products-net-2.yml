@@ -76,10 +76,10 @@ jobs:
           hugo-version: 0.101.0
           extended: true
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
       - name: Extract artifacts
         run: |
-          tar xJf artifact/public.tar.xz
+          tar xJf public.tar.xz
 
       - name: Deploy ${{ matrix.configure_one_platform }} to S3
         run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
