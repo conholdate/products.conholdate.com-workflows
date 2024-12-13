@@ -53,10 +53,10 @@ jobs:
             mv /Users/runner/work/products.conholdate.com-workflows/products.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
 
       - name: Prepare artifacts
-        run: tar cJf public.tar.xz public
+        run: tar cf public.tar public
       - uses: actions/upload-artifact@v4
         with:
-          path: 'public.tar.xz'
+          path: 'public.tar'
 
   deploy:
     needs: build
@@ -77,10 +77,7 @@ jobs:
           extended: true
 
       - uses: actions/download-artifact@v4
-      - name: Extract artifacts
-        run: |
-          ls -lh artifact* *.tar*
-
+      - run: tar xf artifact/public.tar
       - name: Deploy ${{ matrix.configure_one_platform }} to S3
         run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
         env:
