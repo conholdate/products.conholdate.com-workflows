@@ -1,5 +1,5 @@
 name: Deploy Artifacts
-run-name: Deploy Artifacts (${{ inputs.environment }} ${{ inputs.workflow-run }} )
+run-name: Deploy Artifacts (environment=${{ inputs.environment }} workflow-run=${{ inputs.workflow-run }} )
 on:
   workflow_dispatch:
     inputs:
