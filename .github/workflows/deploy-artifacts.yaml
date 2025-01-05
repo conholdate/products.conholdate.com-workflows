@@ -1,0 +1,35 @@
+name: Deploy Artifacts
+run-name: Deploy Artifacts (${{ inputs.environment }} ${{ inputs.workflow-run }} )
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment
+        type: environment
+        default: staging
+        required: true
+      workflow-run:
+        description: Workflow Run ID
+        type: string
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: public
+          run-id: ${{ inputs.workflow-run }}
+          github-token: ${{ secrets.REPO_TOKEN }}
+          path: ${{ runner.temp }}          
+      - run: tar xf ${{ runner.temp }}/public.tar
+
+      - run: aws s3 sync . s3:/products-qa.conholdate.com/
+        if: github.event.inputs.environment == 'staging'
+      - run: aws s3 sync . s3:/products.conholdate.com/
+        if: github.event.inputs.environment == 'production'
