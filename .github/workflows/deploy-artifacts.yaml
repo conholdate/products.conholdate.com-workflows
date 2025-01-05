@@ -28,7 +28,10 @@ jobs:
           run-id: ${{ inputs.workflow-run }}
           github-token: ${{ secrets.REPO_TOKEN }}
           path: ${{ runner.temp }}          
-      - run: tar xf ${{ runner.temp }}/public.tar
+      - run: df -h
+      - run: xz -9 ${{ runner.temp }}/public.tar
+      - run: df -h
+      - run: tar xJf ${{ runner.temp }}/public.tar
 
       - run: aws s3 sync . s3:/products-qa.conholdate.com/
         if: github.event.inputs.environment == 'staging'
