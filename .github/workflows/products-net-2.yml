@@ -53,33 +53,11 @@ jobs:
             mv /Users/runner/work/products.conholdate.com-workflows/products.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
 
       - name: Prepare artifacts
-        run: tar czf public.tar.gz public
-      - uses: actions/upload-artifact@v4
-        with:
-          path: 'public.tar.gz'
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    steps:
-      - uses: actions/checkout@main
-        with:
-          repository: conholdate/products.conholdate.com
-          token: ${{ secrets.REPO_TOKEN }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - uses: peaceiris/actions-hugo@v2.4.13
-        with:
-          hugo-version: 0.101.0
-          extended: true
-
-      - uses: actions/download-artifact@v4
-      - run: tar xzf artifact/public.tar.gz
-      - name: Deploy ${{ matrix.configure_one_platform }} to S3
-        run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+        run: tar cf ../public.tar.gz .
+        working-directory: public
+      - name: Upload artifacts (${{ github.event.inputs.environment }})
+        run: aws s3 cp public.tar s3://products.conholdate.com/
+        if: github.event.inputs.environment === "production"
+      - name: Upload artifacts (${{ github.event.inputs.environment }})
+        run: aws s3 cp public.tar s3://products.conholdate.com/
+        if: github.event.inputs.environment === "staging"
