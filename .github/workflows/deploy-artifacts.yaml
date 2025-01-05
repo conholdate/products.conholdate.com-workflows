@@ -21,15 +21,14 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
     steps:
+      - run: df -h
       - uses: actions/download-artifact@v4
         with:
           name: public
           run-id: ${{ inputs.workflow-run }}
           github-token: ${{ secrets.REPO_TOKEN }}
           path: ${{ runner.temp }}          
-      - run: |
-          df -h
-          tar xf ${{ runner.temp }}/public.tar
+      - run: tar xf ${{ runner.temp }}/public.tar
 
       - run: aws s3 sync . s3:/products-qa.conholdate.com/
         if: github.event.inputs.environment == 'staging'
