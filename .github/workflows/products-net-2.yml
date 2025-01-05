@@ -53,11 +53,11 @@ jobs:
             mv /Users/runner/work/products.conholdate.com-workflows/products.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
 
       - name: Prepare artifacts
-        run: tar cf ../public.tar.gz .
+        run: tar cf ../public-net.tar .
         working-directory: public
       - name: Upload artifacts (${{ github.event.inputs.environment }})
-        run: aws s3 cp public.tar s3://products.conholdate.com/
-        if: github.event.inputs.environment === "production"
-      - name: Upload artifacts (${{ github.event.inputs.environment }})
-        run: aws s3 cp public.tar s3://products.conholdate.com/
+        run: aws s3 cp public-net.tar s3://products-qa.conholdate.com/
         if: github.event.inputs.environment === "staging"
+      - name: Upload artifacts (${{ github.event.inputs.environment }})
+        run: aws s3 cp public-net.tar s3://products.conholdate.com/
+        if: github.event.inputs.environment === "production"
