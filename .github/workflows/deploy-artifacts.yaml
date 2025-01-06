@@ -31,9 +31,10 @@ jobs:
       - run: df -h
       - run: xz -9 ${{ runner.temp }}/public.tar
       - run: df -h
-      - run: tar xJf ${{ runner.temp }}/public.tar
+      - run: tar xJf ${{ runner.temp }}/public.tar.xz
+      - run: df -h
 
-      - run: aws s3 sync . s3:/products-qa.conholdate.com/
+      - run: aws s3 sync . s3://products-qa.conholdate.com/
         if: github.event.inputs.environment == 'staging'
-      - run: aws s3 sync . s3:/products.conholdate.com/
+      - run: aws s3 sync . s3://products.conholdate.com/
         if: github.event.inputs.environment == 'production'
