@@ -9,7 +9,7 @@ on:
         default: staging
         required: true
       workflow-run:
-        description: Workflow Run ID
+        description: Workflow RunID
         type: string
         required: true
 
