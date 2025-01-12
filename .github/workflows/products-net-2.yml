@@ -52,7 +52,7 @@ jobs:
             find /Users/runner/work/products.conholdate.com-workflows/products.conholdate.com-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
             mv /Users/runner/work/products.conholdate.com-workflows/products.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
 
-      - name: Prepare artifacts
+      - name: Prepare Artifacts
         run: tar -cf ../public.tar .
         working-directory: public
       - uses: actions/upload-artifact@v4
