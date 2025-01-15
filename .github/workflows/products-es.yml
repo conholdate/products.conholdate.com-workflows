@@ -18,12 +18,13 @@ jobs:
     steps:
 
       - name: Checkout theme repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           repository: conholdate/products.conholdate.com
           path: hugo_repo
           token: ${{ secrets.REPO_TOKEN }}
           fetch-depth: 0  # Fetch all history for .GitInfo and .Lastmod
+          submodules: true
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2.4.13
