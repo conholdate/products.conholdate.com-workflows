@@ -18,7 +18,7 @@ jobs:
     steps:
 
       - name: Checkout theme repo
-        uses: actions/checkout@main
+        uses: actions/checkout@master
         with:
           repository: conholdate/products.conholdate.com
           path: hugo_repo
