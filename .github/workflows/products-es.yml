@@ -23,7 +23,6 @@ jobs:
           repository: conholdate/products.conholdate.com
           path: hugo_repo
           token: ${{ secrets.REPO_TOKEN }}
-          submodules: true  # Fetch Hugo themes
           fetch-depth: 0  # Fetch all history for .GitInfo and .Lastmod
 
       - name: Setup Hugo
