@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@main
         with:
           repository: conholdate/products.conholdate.com
+          path: hugo_repo
           token: ${{ secrets.REPO_TOKEN }}
           submodules: true  # Fetch Hugo themes
           fetch-depth: 0  # Fetch all history for .GitInfo and .Lastmod
@@ -32,7 +33,7 @@ jobs:
           extended: true  
 
       - name: Build products.conholdate.com
-        run: hugo --config ./config-es.toml --minify
+        run: hugo --config hugo_repo/config-es.toml --minify
 
       - name: Deploy products.conholdate.com to S3
         run: hugo deploy --target "${{ github.event.inputs.environment }}" --maxDeletes -1 --force
