@@ -6,25 +6,20 @@ on:
         description: 'Build environment'
         type: environment
         default: staging
-        required: true
+        required: true 
 jobs:
-  deploy:
-    runs-on: macos-13
-    environment: ${{ github.event.inputs.environment }}
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}   
     
     steps:
-
       - name: Checkout theme repo
         uses: actions/checkout@v3
         with:
           repository: conholdate/products.conholdate.com
-          path: hugo_repo
           token: ${{ secrets.REPO_TOKEN }}
+          submodules: true  # Fetch hugo theme
           fetch-depth: 0  # Fetch all history for .GitInfo and .Lastmod
-          submodules: true
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2.4.13
