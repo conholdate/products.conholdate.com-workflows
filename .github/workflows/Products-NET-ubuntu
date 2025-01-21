@@ -1,4 +1,4 @@
-name: Products-NET-ubuntu-13
+name: Products-NET-ubuntu
 on:
   workflow_dispatch:
     inputs:
