@@ -10,7 +10,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
     environment: ${{ github.event.inputs.environment }}
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
