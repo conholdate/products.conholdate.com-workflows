@@ -1,4 +1,4 @@
-name: Products-frzhrujapt
+name: Products-ptestrde
 on:
   workflow_dispatch:
     inputs:
@@ -28,7 +28,7 @@ jobs:
           extended: true  
 
       - name: Build products.conholdate.com
-        run: hugo --config config-frzhrujapt.toml --minify
+        run: hugo --config config-ptestrde.toml --minify
 
       - name: Deploy products.conholdate.com to S3
         run: hugo deploy --target "${{ github.event.inputs.environment }}" --maxDeletes=0
