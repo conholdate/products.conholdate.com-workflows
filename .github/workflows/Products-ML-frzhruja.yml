@@ -29,7 +29,7 @@ jobs:
 
       - name: Configure Build Language
         run: |          
-            echo "HUGO_DISABLELANGUAGES=pt es tr de sv it da el ar iw ko af bg et pl nl th hi id cs fa fi hu ms uk vi no ca fil hr he" >> $GITHUB_ENV
+            echo "HUGO_DISABLELANGUAGES=pt es tr de sv it da el ar ko af bg et pl nl th hi id cs fa fi hu ms uk vi no ca fil hr he" >> $GITHUB_ENV
             
       - name: Build
         run: hugo --minify --enableGitInfo
