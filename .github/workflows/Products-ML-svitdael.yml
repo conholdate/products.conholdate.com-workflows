@@ -1,4 +1,4 @@
-name: Products-ML-itdaelko
+name: Products-ML-svitdael
 on:
   workflow_dispatch:
     inputs:
@@ -29,7 +29,7 @@ jobs:
 
       - name: Configure Build Language
         run: |          
-            echo "HUGO_DISABLELANGUAGES=fr zh ru ja pt es tr de sv ar he id cs uk th af nl bg et pl hi hu ms vi fa fi no ca fil hr" >> $GITHUB_ENV
+            echo "HUGO_DISABLELANGUAGES=fr zh ru ja pt es tr de ar he ko id cs uk th af nl bg et pl hi hu ms vi fa fi no ca fil hr" >> $GITHUB_ENV
             
       - name: Build
         run: hugo --minify --enableGitInfo
