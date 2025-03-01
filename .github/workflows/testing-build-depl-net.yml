@@ -1,12 +1,18 @@
 name: Build & Deploy .NET for All Languages
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        type: environment
+        default: staging
+        required: true 
 
 jobs:
   build-langs:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: false 
       matrix:
         # Provide all the languages you want to build in parallel
         language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, iw, ko, af, bg, et, pl, nl, th, hi, id, cs, fa, fi, hu, ms, uk, vi, no, ca, fil, hr]
@@ -28,7 +34,7 @@ jobs:
         uses: peaceiris/actions-hugo@v2.4.13
         with:
           hugo-version: '0.101.0'
-          extended: true
+          extended: true 
 
       - name: Install Node dependencies
         run: npm install
