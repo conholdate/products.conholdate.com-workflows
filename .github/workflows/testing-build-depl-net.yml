@@ -17,7 +17,7 @@ jobs:
         # Provide all the languages you want to build in parallel
         language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, iw, ko, af, bg, et, pl, nl, th, hi, id, cs, fa, fi, hu, ms, uk, vi, no, ca, fil, hr]
     steps:
-      - name: Checkout
+      - name: Checkout theme repo
         uses: actions/checkout@v3
         with:
           repository: conholdate/products.conholdate.com
