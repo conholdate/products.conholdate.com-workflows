@@ -17,7 +17,7 @@ jobs:
         # Provide all the languages you want to build in parallel
         language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, iw, ko, af, bg, et, pl, nl, th, hi, id, cs, fa, fi, hu, ms, uk, vi, no, ca, fil, hr]
     steps:
-      - name: Checkout theme repo
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           repository: conholdate/products.conholdate.com
@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: public-${{ matrix.language }}
           path: |
@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: all
           path: artifacts
