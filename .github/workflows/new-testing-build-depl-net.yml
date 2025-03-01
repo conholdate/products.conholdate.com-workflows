@@ -15,7 +15,7 @@ jobs:
       fail-fast: false 
       matrix:
         # Provide all the languages you want to build in parallel
-        language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, iw, ko, af, bg, et, pl, nl, th, hi, id, cs, fa, fi, hu, ms, uk, vi, no, ca, fil, hr]
+        language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, ko, pl, th, id, fa, vi, he]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
