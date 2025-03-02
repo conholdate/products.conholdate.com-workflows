@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false 
-      max-parallel: 5 
+      max-parallel: 2 
       matrix:
         # Provide all the languages you want to build in parallel
         language: [en, fr, zh, ru, tr, pt, ar, es, ja, de, sv, it, da, el, ko, pl, th, id, fa, vi, he]
