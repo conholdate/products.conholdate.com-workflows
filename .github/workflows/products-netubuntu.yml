@@ -53,7 +53,7 @@ jobs:
           --templateMetrics --templateMetricsHints --enableGitInfo --gc
       - name: Prepare public folder
         run: |
-            find /home/administrator/actions-runner/_work/products.conholdate.com-workflows/products.conholdate.com-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;=
+            find /home/administrator/actions-runner/_work/products.conholdate.com-workflows/products.conholdate.com-workflows/public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;
             mv /home/administrator/actions-runner/_work/products.conholdate.com-workflows/products.conholdate.com-workflows/${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml;
       - name: Deploy ${{ matrix.configure_one_platform }} to S3
         run: hugo deploy --config "./split-build-config.toml" --maxDeletes=0 --target "${{ github.event.inputs.environment }}" --invalidateCDN
