@@ -27,6 +27,10 @@ jobs:
           repository: conholdate/products.conholdate.com
           token: ${{ secrets.REPO_TOKEN }}
           fetch-depth: 0
+      - name: Check swap space status
+        run: |
+          swapon --show
+          free -mh
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
