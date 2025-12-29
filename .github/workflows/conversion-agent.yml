@@ -1,0 +1,72 @@
+name: Conversion Agent (Generate + Validate + Golden Guard)
+
+on:
+  workflow_dispatch:
+  #schedule:
+  #  - cron: "0 2 * * *"   # daily 02:00 UTC (adjust later)
+  push:
+    branches: [ main ]
+
+jobs:
+  run-agent:
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Checkout agent repo
+        uses: actions/checkout@v4
+        with:
+          repository: conholdate/product-pages-agent
+          path: agent
+          token: ${{ secrets.AGENT_REPO_PAT }}
+
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+        with:
+          repository: conholdate/products.conholdate.com
+          path: workspace
+          token: ${{ secrets.CONTENT_REPO_PAT }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: agent
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
+          pip install -r requirements.txt
+
+      - name: Run conversion crew
+        working-directory: agent
+        env:
+          WORKSPACE_ROOT: ${{ github.workspace }}/workspace
+          GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+          LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          # optional: FORCE_REGEN: "1"
+        run: |
+          . .venv/bin/activate
+          python -m crews.conversion_crew
+
+      - name: Commit & push to content repo (if changed)
+        working-directory: workspace
+        env:
+          GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+        run: |
+          git config user.name "$GIT_USER_NAME"
+          git config user.email "$GIT_USER_EMAIL"
+
+          git status --porcelain
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "AutoAgent Usman: conversion pages (Product Pages Agent)"
+            git push
+          else
+            echo "No changes to push."
+          fi
