@@ -16,6 +16,7 @@ jobs:
           repository: conholdate/product-pages-agent
           path: agent
           token: ${{ secrets.AGENT_REPO_PAT }}
+          ref: main
 
       - name: Checkout content repo
         uses: actions/checkout@v4
@@ -23,6 +24,7 @@ jobs:
           repository: conholdate/products.conholdate.com
           path: workspace
           token: ${{ secrets.CONTENT_REPO_PAT }}
+          ref: master
           fetch-depth: 0
 
       - name: Set up Python
