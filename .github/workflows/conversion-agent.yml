@@ -48,6 +48,8 @@ jobs:
           GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
           LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.LLM_API_BASE }}
+          OPENAI_API_KEY:  ${{ secrets.LLM_API_KEY }}
           # optional: FORCE_REGEN: "1"
         run: |
           . .venv/bin/activate
