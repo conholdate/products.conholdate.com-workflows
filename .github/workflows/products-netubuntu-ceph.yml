@@ -19,6 +19,7 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       AWS_EC2_METADATA_DISABLED: "true"
       AWS_ENDPOINT_URL: https://s3.dynabic.com
+      PLATFORM_INDEX_SITEMAP: index.platform.sitemap
 
     strategy:
       fail-fast: false 
@@ -62,7 +63,12 @@ jobs:
       - name: Prepare public folder
         run: |
           find ./public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;
-          mv ${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml
+
+          if [ -f "${{ env.PLATFORM_INDEX_SITEMAP }}" ]; then
+            mv "${{ env.PLATFORM_INDEX_SITEMAP }}" public/platform-sitemaps.xml
+          else
+            echo "⚠️ Warning: ${PLATFORM_INDEX_SITEMAP} not found. Skipping move."
+          fi
 
       - name: Install AWS CLI
         run: |
