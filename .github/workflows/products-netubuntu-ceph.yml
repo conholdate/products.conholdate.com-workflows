@@ -1,4 +1,5 @@
 name: Products-NET-UBUNTU-Ceph
+
 on:
   workflow_dispatch:
     inputs:
@@ -7,30 +8,27 @@ on:
         type: environment
         default: staging
         required: true 
+
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64]
     environment: ${{ github.event.inputs.environment }}
     env:
-      #AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-      #AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
-      # Ceph / S3 credentials & settings (PROD)
       AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_S3_SECRET_KEY }}
       AWS_DEFAULT_REGION: us-east-1
       AWS_EC2_METADATA_DISABLED: "true"
-      # IMPORTANT: Use the same endpoint your deploy script used
       AWS_ENDPOINT_URL: https://s3.dynabic.com
-      # (Optional) Bunny API key already in secrets.BUNNY_API_KEY
 
     strategy:
       fail-fast: false 
       matrix:
         configure_one_platform:
           - net
+
     steps:
       - name: Checkout theme repo
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
         with:
           repository: conholdate/products.conholdate.com
           token: ${{ secrets.REPO_TOKEN }}
@@ -40,13 +38,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2.4.13
         with:
           hugo-version: 0.101.0
           extended: true 
+
       - name: Install Node.js dependencies
         run: npm install
+
       - name: Configure build environment
         env:
           CONFIGURE_ONE_PLATFORM: ${{ matrix.configure_one_platform }}
@@ -63,6 +64,11 @@ jobs:
           find ./public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;
           mv ${{ vars.PLATFORM_INDEX_SITEMAP }} public/platform-sitemaps.xml
 
+      - name: Install AWS CLI
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install awscli
+
       - name: Sync to Ceph S3 Bucket
         run: |
           echo "Deploying to Ceph S3 bucket..."
@@ -70,9 +76,6 @@ jobs:
             --endpoint-url "$AWS_ENDPOINT_URL" \
             --acl public-read \
             --delete
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_S3_SECRET_KEY }}
 
       - name: Purge BunnyCDN (optional)
         if: success()
