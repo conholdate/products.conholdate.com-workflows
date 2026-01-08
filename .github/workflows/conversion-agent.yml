@@ -1,7 +1,17 @@
-name: Conversion Agent (Generate + Validate + Golden Guard)
+name: Product Pages Agent (Generate + Validate + Golden Guard)
 
 on:
   workflow_dispatch:
+    inputs:
+      feature:
+        description: "Crew to run"
+        required: true
+        default: "conversion"
+        type: choice
+        options:
+          - conversion
+          - viewer
+          - watermark
   #schedule:
   #  - cron: "0 2 * * *"   # daily 02:00 UTC (adjust later)
 
@@ -40,7 +50,7 @@ jobs:
           pip install -U pip
           pip install -r requirements.txt
 
-      - name: Run conversion crew
+      - name: Run selected crew
         working-directory: agent
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}/workspace
@@ -55,7 +65,12 @@ jobs:
           # FORCE_REGEN: "1" # Optional
         run: |
           . .venv/bin/activate
-          python -m crews.conversion_crew
+          case "${{ github.event.inputs.feature }}" in
+            conversion) python -m crews.conversion_crew ;;
+            viewer) python -m crews.viewer_crew ;;
+            watermark) python -m crews.watermark_crew ;;
+            *) echo "Unknown feature: ${{ github.event.inputs.feature }}" && exit 2 ;;
+          esac
 
       - name: Commit & push to content repo (if changed)
         working-directory: workspace
@@ -69,7 +84,7 @@ jobs:
           git status --porcelain
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
-            git commit -m "AutoAgent Usman: conversion pages (Product Pages Agent)"
+            git commit -m "AutoAgent Usman: ${{ github.event.inputs.feature }} pages (Product Pages Agent)"
             git push
           else
             echo "No changes to push."
