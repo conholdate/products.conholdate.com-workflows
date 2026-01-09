@@ -68,25 +68,7 @@ jobs:
             mv "${{ env.PLATFORM_INDEX_SITEMAP }}" public/platform-sitemaps.xml
           else
             echo "⚠️ Warning: ${PLATFORM_INDEX_SITEMAP} not found. Skipping move."
-          fi
-
-      - name: Install AWS CLI without sudo
-        run: |
-          if ! command -v aws &> /dev/null; then
-            echo "Installing unzip first..."
-            apt-get update && apt-get install -y unzip
-            
-            echo "Installing AWS CLI locally..."
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            ./aws/install -i $HOME/.local/aws-cli -b $HOME/.local/bin
-            echo "$HOME/.local/bin" >> $GITHUB_PATH
-          else
-            echo "AWS CLI already installed."
-          fi
-
-      - name: Verify AWS CLI install
-        run: aws --version
+          fi     
 
       - name: Sync to Ceph S3 Bucket
         run: |
