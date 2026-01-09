@@ -1,0 +1,87 @@
+name: Products-Java-UBUNTU-Ceph
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        type: environment
+        default: staging
+        required: true 
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64]
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_S3_SECRET_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_ENDPOINT_URL: https://s3.dynabic.com
+      PLATFORM_INDEX_SITEMAP: index.platform.sitemap
+
+    strategy:
+      fail-fast: false 
+      matrix:
+        configure_one_platform:
+          - java
+
+    steps:
+      - name: Checkout theme repo
+        uses: actions/checkout@v4
+        with:
+          repository: conholdate/products.conholdate.com
+          token: ${{ secrets.REPO_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2.4.13
+        with:
+          hugo-version: 0.101.0
+          extended: true 
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Configure build environment
+        env:
+          CONFIGURE_ONE_PLATFORM: ${{ matrix.configure_one_platform }}
+        run: npm run splitbyplatform
+
+      - name: Build ${{ matrix.configure_one_platform }}
+        run: |
+          hugo --config "./split-build-config.toml","./platform.json" \
+               -b "${{ vars.BASEURL }}" \
+               --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo --gc
+
+      - name: Prepare public folder
+        run: |
+          find ./public -iname 'sitemap.xml' -execdir mv -i '{}' ${{ matrix.configure_one_platform }}.xml \;
+
+          if [ -f "${{ env.PLATFORM_INDEX_SITEMAP }}" ]; then
+            mv "${{ env.PLATFORM_INDEX_SITEMAP }}" public/platform-sitemaps.xml
+          else
+            echo "⚠️ Warning: ${PLATFORM_INDEX_SITEMAP} not found. Skipping move."
+          fi     
+
+      - name: Sync to Ceph S3 Bucket
+        run: |
+          echo "Deploying to Ceph S3 bucket..."
+          aws s3 sync ./public/ s3://products-conholdate-com/ \
+            --endpoint-url "$AWS_ENDPOINT_URL" \
+            --acl public-read \
+            --delete
+
+      - name: Purge BunnyCDN (optional)
+        if: success()
+        run: |
+          curl -siG \
+            -H "X-Api-Key: ${{ secrets.BUNNY_API_KEY }}" \
+            --data-urlencode "url=https://products.conholdate.com" \
+            "https://api.dynabic.com/bn/purge?async=true"
