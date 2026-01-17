@@ -75,7 +75,10 @@ jobs:
           echo "Deploying to Ceph S3 bucket..."
           aws s3 sync ./public/ s3://products-conholdate-com/ \
             --endpoint-url "$AWS_ENDPOINT_URL" \
-            --acl public-read
+            --acl public-read \
+            --size-only \
+            --no-progress \
+            --exclude ".git/*"
 
       - name: Purge BunnyCDN (optional)
         if: success()
