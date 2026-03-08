@@ -1,0 +1,97 @@
+name: Sync to GitLab
+
+on:
+  # Manual run with parameters
+  workflow_dispatch:
+    inputs:
+      sync_mode:
+        description: "Sync mode: main or all"
+        required: true
+        default: "main"
+        type: choice
+        options:
+          - main
+          - all
+      prune_deleted_branches:
+        description: "If 'all', prune branches deleted on GitHub (true/false)"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      sync_tags:
+        description: "Sync tags (true/false)"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+  # Optional: auto-sync when main changes
+  #push:
+    #branches:
+      #- main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add GitLab remote (HTTPS + token)
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_REPO: ${{ secrets.GITLAB_REPO }}
+        run: |
+          set -euo pipefail
+          # Use oauth2 username pattern commonly accepted by GitLab for PAT over HTTPS
+          GITLAB_URL="https://oauth2:${GITLAB_TOKEN}@${GITLAB_REPO}"
+          git remote remove gitlab 2>/dev/null || true
+          git remote add gitlab "$GITLAB_URL"
+          git remote -v
+
+      - name: Fetch all refs from GitHub origin
+        run: |
+          set -euo pipefail
+          git fetch --prune origin "+refs/heads/*:refs/remotes/origin/*" "+refs/tags/*:refs/tags/*"
+
+      - name: Sync to GitLab
+        env:
+          # For push events, default to main sync.
+          SYNC_MODE: ${{ github.event_name == 'push' && 'main' || inputs.sync_mode }}
+          PRUNE: ${{ github.event_name == 'push' && 'false' || inputs.prune_deleted_branches }}
+          SYNC_TAGS: ${{ github.event_name == 'push' && 'true' || inputs.sync_tags }}
+        run: |
+          set -euo pipefail
+          echo "SYNC_MODE=$SYNC_MODE"
+          echo "PRUNE=$PRUNE"
+          echo "SYNC_TAGS=$SYNC_TAGS"
+
+          if [ "$SYNC_MODE" = "main" ]; then
+            # Push GitHub main -> GitLab main
+            git push gitlab "refs/remotes/origin/main:refs/heads/main"
+          else
+            # Push ALL branches GitHub -> GitLab
+            if [ "$PRUNE" = "true" ]; then
+              # Prune GitLab branches that were deleted on GitHub
+              git push --prune gitlab "refs/remotes/origin/*:refs/heads/*"
+            else
+              # No prune: just update/create branches
+              git push gitlab "refs/remotes/origin/*:refs/heads/*"
+            fi
+          fi
+
+          if [ "$SYNC_TAGS" = "true" ]; then
+            git push gitlab --tags
+          fi
