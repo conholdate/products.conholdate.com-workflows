@@ -21,6 +21,7 @@ on:
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 4320
     environment: ${{ inputs.environment }}
 
     env:
@@ -49,6 +50,7 @@ jobs:
           fetch-depth: 0
           clean: true
           submodules: false
+          persist-credentials: false
           path: site
 
       - name: Setup Node.js
