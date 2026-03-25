@@ -29,7 +29,6 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       AWS_EC2_METADATA_DISABLED: "true"
       AWS_ENDPOINT_URL: https://s3.dynabic.com
-      AWS_CONFIG_FILE: ${{ runner.temp }}/aws-config
       AWS_RETRY_MODE: standard
       AWS_MAX_ATTEMPTS: "10"
       PLATFORM_INDEX_SITEMAP: index.platform.sitemap
@@ -118,6 +117,7 @@ jobs:
         run: |
           set -euo pipefail
 
+          export AWS_CONFIG_FILE="$RUNNER_TEMP/aws-config"
           mkdir -p "$(dirname "$AWS_CONFIG_FILE")"
           touch "$AWS_CONFIG_FILE"
 
