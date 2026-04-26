@@ -91,8 +91,7 @@ jobs:
           set -euo pipefail
           hugo --config "./split-build-config.toml","./platform.json" \
                -b "${{ vars.BASEURL }}" \
-               --cleanDestinationDir \
-               --minify \
+               --cleanDestinationDir \               
                --gc
 
       - name: Prepare public folder
