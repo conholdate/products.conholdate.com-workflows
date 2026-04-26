@@ -20,7 +20,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, vps-git-runner]
     timeout-minutes: 4320
     environment: ${{ inputs.environment }}
 
