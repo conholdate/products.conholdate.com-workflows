@@ -1,0 +1,187 @@
+name: Products Single Page UBUNTU Ceph
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build environment'
+        type: environment
+        default: staging
+        required: true 
+
+      platform:
+        description: 'Platform to build'
+        required: true 
+        type: choice
+        options:
+          - net
+          - java
+        default: net
+
+      target_public_path:
+        description: 'Single generated public file to upload, e.g. total/net/conversion/docx-to-pdf/index.html'
+        required: true 
+        type: string
+        default: total/net/conversion/docx-to-pdf/index.html
+
+      target_url:
+        description: 'Live URL to purge after upload'
+        required: true 
+        type: string
+        default: https://products.conholdate.com/total/net/conversion/docx-to-pdf/
+
+jobs:
+  deploy-single-page:
+    runs-on: [self-hosted, Linux, X64, vps-git-runner]
+    timeout-minutes: 720
+    environment: ${{ inputs.environment }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_S3_SECRET_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_ENDPOINT_URL: https://s3.dynabic.com
+      AWS_RETRY_MODE: standard
+      AWS_MAX_ATTEMPTS: "10"
+      PLATFORM_INDEX_SITEMAP: index.platform.sitemap
+      TARGET_PUBLIC_PATH: ${{ inputs.target_public_path }}
+      TARGET_URL: ${{ inputs.target_url }}
+
+    steps:
+      - name: Clean runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+        with:
+          repository: conholdate/products.conholdate.com
+          token: ${{ secrets.REPO_TOKEN }}
+          fetch-depth: 1
+          clean: true 
+          submodules: false 
+          persist-credentials: false 
+          path: site
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2.4.13
+        with:
+          hugo-version: 0.101.0
+          extended: true 
+
+      - name: Install Node.js dependencies
+        working-directory: ./site
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Configure build environment
+        working-directory: ./site
+        env:
+          CONFIGURE_ONE_PLATFORM: ${{ inputs.platform }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run splitbyplatform
+
+      - name: Build ${{ inputs.platform }}
+        working-directory: ./site
+        shell: bash
+        run: |
+          set -euo pipefail
+          hugo --config "./split-build-config.toml","./platform.json" \
+               -b "${{ vars.BASEURL }}" \
+               --cleanDestinationDir \
+               --minify \
+               --gc
+
+      - name: Validate target file exists
+        working-directory: ./site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_FILE="./public/${TARGET_PUBLIC_PATH}"
+
+          echo "Target public path: ${TARGET_PUBLIC_PATH}"
+          echo "Target file: ${TARGET_FILE}"
+
+          if [ ! -f "${TARGET_FILE}" ]; then
+            echo "ERROR: Target file was not generated: ${TARGET_FILE}"
+            echo "Showing nearby generated files for debugging:"
+            find ./public -type f | grep -i "docx-to-pdf\|conversion" | head -50 || true
+            exit 1
+          fi
+
+          echo "Target file exists."
+          ls -lh "${TARGET_FILE}"
+
+      - name: Upload single page to Ceph S3 bucket
+        working-directory: ./site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export AWS_CONFIG_FILE="$RUNNER_TEMP/aws-config"
+          mkdir -p "$(dirname "$AWS_CONFIG_FILE")"
+          touch "$AWS_CONFIG_FILE"
+
+          aws configure set default.s3.max_concurrent_requests 5
+          aws configure set default.s3.max_queue_size 10000
+
+          TARGET_FILE="./public/${TARGET_PUBLIC_PATH}"
+          TARGET_S3_URI="s3://products-conholdate-com/${TARGET_PUBLIC_PATH}"
+
+          echo "Uploading single file:"
+          echo "  From: ${TARGET_FILE}"
+          echo "  To:   ${TARGET_S3_URI}"
+
+          aws s3 cp "${TARGET_FILE}" "${TARGET_S3_URI}" \
+            --endpoint-url "$AWS_ENDPOINT_URL" \
+            --acl public-read \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "no-cache" \
+            --no-progress
+
+          echo "Single page upload completed."
+
+      - name: Purge BunnyCDN target URL
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Purging target URL:"
+          echo "${TARGET_URL}"
+
+          curl -siG \
+            -H "X-Api-Key: ${{ secrets.BUNNY_API_KEY }}" \
+            --data-urlencode "url=${TARGET_URL}" \
+            "https://api.dynabic.com/bn/purge?async=true"
+
+      - name: Print verification details
+        working-directory: ./site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Single-page Ceph deployment completed."
+          echo "Platform: ${{ inputs.platform }}"
+          echo "Uploaded public file: ${TARGET_PUBLIC_PATH}"
+          echo "Purged URL: ${TARGET_URL}"
+          echo ""
+          echo "Next verification URL:"
+          echo "${TARGET_URL}"
