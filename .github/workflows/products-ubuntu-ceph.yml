@@ -18,6 +18,25 @@ on:
           - java
         default: net
 
+
+      feature:
+        description: 'PPA feature associated with this deployment'
+        required: false
+        type: string
+        default: ''
+
+      content_commit:
+        description: 'Content repository commit associated with this deployment'
+        required: false
+        type: string
+        default: ''
+
+      agent_cycle_run_id:
+        description: 'Originating PPA scheduler run ID'
+        required: false
+        type: string
+        default: ''
+
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64, vps-git-runner]
@@ -46,6 +65,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: conholdate/products.conholdate.com
+          ref: ${{ inputs.content_commit != '' && inputs.content_commit || 'master' }}
           token: ${{ secrets.REPO_TOKEN }}
           fetch-depth: 0
           clean: true
@@ -168,3 +188,79 @@ jobs:
             -H "X-Api-Key: ${{ secrets.BUNNY_API_KEY }}" \
             --data-urlencode "url=https://products.conholdate.com/*" \
             "https://api.dynabic.com/bn/purge?async=true"
+
+
+      - name: Continue PPA feature cycle
+        if: ${{ always() && inputs.feature != '' && inputs.content_commit != '' }}
+        shell: bash
+        env:
+          AGENT_REPO_PAT: ${{ secrets.AGENT_REPO_PAT }}
+          PPA_FEATURE: ${{ inputs.feature }}
+          PPA_PLATFORM: ${{ inputs.platform }}
+          PPA_CONTENT_COMMIT: ${{ inputs.content_commit }}
+          PPA_AGENT_CYCLE_RUN_ID: ${{ inputs.agent_cycle_run_id }}
+          PPA_DEPLOYMENT_RUN_ID: ${{ github.run_id }}
+          PPA_DEPLOYMENT_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${AGENT_REPO_PAT:-}" ]]; then
+            echo "::error::AGENT_REPO_PAT is required for the PPA continuation callback."
+            exit 1
+          fi
+
+          echo "ppa_feature=${PPA_FEATURE}"
+          echo "ppa_platform=${PPA_PLATFORM}"
+          echo "ppa_content_commit=${PPA_CONTENT_COMMIT}"
+          echo "ppa_agent_cycle_run_id=${PPA_AGENT_CYCLE_RUN_ID}"
+          echo "ppa_deployment_run_id=${PPA_DEPLOYMENT_RUN_ID}"
+          echo "ppa_deployment_status=${PPA_DEPLOYMENT_STATUS}"
+
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          payload = {
+              "ref": "main",
+              "inputs": {
+                  "mode": "manual_validation",
+                  "execution_mode": "execute_feature",
+                  "continuation_mode": "deployment_callback",
+                  "continuation_feature": os.environ["PPA_FEATURE"],
+                  "completed_platform": os.environ["PPA_PLATFORM"],
+                  "completed_workflow_run_id": os.environ["PPA_DEPLOYMENT_RUN_ID"],
+                  "completed_content_commit": os.environ["PPA_CONTENT_COMMIT"],
+              },
+          }
+
+          request = urllib.request.Request(
+              "https://api.github.com/repos/conholdate/product-pages-agent/"
+              "actions/workflows/ppa-weekly-feature-scheduler.yml/dispatches",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['AGENT_REPO_PAT']}",
+                  "Content-Type": "application/json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+              method="POST",
+          )
+
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  if response.status != 204:
+                      raise SystemExit(
+                          f"Unexpected continuation dispatch status: {response.status}"
+                      )
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode("utf-8", errors="replace")
+              raise SystemExit(
+                  f"PPA continuation callback failed: HTTP {exc.code}: {body}"
+              ) from exc
+          except urllib.error.URLError as exc:
+              raise SystemExit(f"PPA continuation callback failed: {exc}") from exc
+
+          print("PPA continuation callback dispatched.")
+          PY
