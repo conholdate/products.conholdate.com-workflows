@@ -190,8 +190,9 @@ jobs:
             "https://api.dynabic.com/bn/purge?async=true"
 
 
+      # The guarded recovery uses its own verified continuation, not weekly scheduler callbacks.
       - name: Continue PPA feature cycle
-        if: ${{ always() && inputs.feature != '' && inputs.content_commit != '' }}
+        if: ${{ always() && inputs.feature != '' && inputs.content_commit != '' && inputs.agent_cycle_run_id != '42512524733' }}
         shell: bash
         env:
           AGENT_REPO_PAT: ${{ secrets.AGENT_REPO_PAT }}
