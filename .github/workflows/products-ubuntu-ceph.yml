@@ -37,6 +37,12 @@ on:
         type: string
         default: ''
 
+      recovery_manual_continuation:
+        description: 'Do not dispatch the normal weekly callback for a separately guarded recovery'
+        required: false
+        type: boolean
+        default: false
+
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64, vps-git-runner]
@@ -192,7 +198,7 @@ jobs:
 
       # The guarded recovery uses its own verified continuation, not weekly scheduler callbacks.
       - name: Continue PPA feature cycle
-        if: ${{ always() && inputs.feature != '' && inputs.content_commit != '' && inputs.agent_cycle_run_id != '42512524733' }}
+        if: ${{ always() && inputs.feature != '' && inputs.content_commit != '' && inputs.agent_cycle_run_id != '42512524733' && inputs.recovery_manual_continuation != true }}
         shell: bash
         env:
           AGENT_REPO_PAT: ${{ secrets.AGENT_REPO_PAT }}
