@@ -1,0 +1,46 @@
+name: PPA Deployment Downstream Tokens Preflight (Read Only)
+on:
+  push:
+    branches: [safety/ppa-deployment-token-preflight-20261123]
+    paths: [.github/workflows/ppa-deployment-token-preflight.yml]
+permissions:
+  contents: read
+jobs:
+  read-only-authentication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify content checkout and agent callback credentials without dispatch
+        shell: bash
+        env:
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+          AGENT_REPO_PAT: ${{ secrets.AGENT_REPO_PAT }}
+        run: |
+          set -euo pipefail
+          test -n "${REPO_TOKEN:-}" || { echo "::error::REPO_TOKEN missing"; exit 1; }
+          test -n "${AGENT_REPO_PAT:-}" || { echo "::error::AGENT_REPO_PAT missing"; exit 1; }
+          echo "::add-mask::${REPO_TOKEN}"
+          echo "::add-mask::${AGENT_REPO_PAT}"
+          echo "PPA_DEPLOY_DOWNSTREAM_CHECK=read_only"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer ${REPO_TOKEN}" https://api.github.com/repos/conholdate/products.conholdate.com)"
+          test "$code" = 200 || { echo "::error::REPO_TOKEN content repository authorization HTTP $code"; exit 1; }
+          echo "PPA_DEPLOY_CONTENT_PAT_API=pass"
+          askpass="$(mktemp)"
+          trap 'rm -f "$askpass"' EXIT
+          cat > "$askpass" <<'EOF'
+          #!/bin/sh
+          case "$1" in
+            *Username*) echo x-access-token ;;
+            *Password*) echo "$REPO_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          EOF
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0
+          git -c credential.helper= ls-remote --exit-code https://github.com/conholdate/products.conholdate.com.git refs/heads/master > /dev/null
+          echo "PPA_DEPLOY_CONTENT_PAT_GIT=pass"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer ${AGENT_REPO_PAT}" https://api.github.com/repos/conholdate/product-pages-agent)"
+          test "$code" = 200 || { echo "::error::AGENT_REPO_PAT agent repository authorization HTTP $code"; exit 1; }
+          echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_READ=pass"
+          echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_WRITE_NOT_TESTED=true"
+          echo "PPA_DEPLOY_DOWNSTREAM_CHECK=pass"
