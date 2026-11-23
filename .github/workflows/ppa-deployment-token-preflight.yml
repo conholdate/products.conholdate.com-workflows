@@ -45,5 +45,14 @@ jobs:
           actions_status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer ${AGENT_REPO_PAT}" https://api.github.com/repos/conholdate/product-pages-agent/actions/workflows/ppa-weekly-feature-scheduler.yml)"
           test "$actions_status" = 200 || { echo "::error::AGENT_REPO_PAT lacks scheduler metadata access HTTP $actions_status"; exit 1; }
           echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_ACTIONS_READ=pass"
+          dispatch_http="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -X POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${AGENT_REPO_PAT}" \
+            -d '{"ref":"main","inputs":{"origin":"downstream-auth-preflight"}}' \
+            https://api.github.com/repos/conholdate/product-pages-agent/actions/workflows/ppa-callback-auth-canary.yml/dispatches)"
+          test "$dispatch_http" = 204 || { echo "::error::AGENT_REPO_PAT canary dispatch HTTP $dispatch_http"; exit 1; }
+          echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_ACTIONS_WRITE=pass"
           echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_WRITE_NOT_TESTED=true"
           echo "PPA_DEPLOY_DOWNSTREAM_CHECK=pass"
