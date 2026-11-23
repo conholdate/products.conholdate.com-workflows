@@ -42,5 +42,8 @@ jobs:
           code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer ${AGENT_REPO_PAT}" https://api.github.com/repos/conholdate/product-pages-agent)"
           test "$code" = 200 || { echo "::error::AGENT_REPO_PAT agent repository authorization HTTP $code"; exit 1; }
           echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_READ=pass"
+          actions_status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer ${AGENT_REPO_PAT}" https://api.github.com/repos/conholdate/product-pages-agent/actions/workflows/ppa-weekly-feature-scheduler.yml)"
+          test "$actions_status" = 200 || { echo "::error::AGENT_REPO_PAT lacks scheduler metadata access HTTP $actions_status"; exit 1; }
+          echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_ACTIONS_READ=pass"
           echo "PPA_DEPLOY_AGENT_CALLBACK_PAT_WRITE_NOT_TESTED=true"
           echo "PPA_DEPLOY_DOWNSTREAM_CHECK=pass"
