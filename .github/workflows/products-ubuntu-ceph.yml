@@ -60,6 +60,39 @@ jobs:
       PLATFORM_INDEX_SITEMAP: index.platform.sitemap
 
     steps:
+      - name: Preflight deployment checkout and PPA callback credentials
+        shell: bash
+        env:
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+          AGENT_REPO_PAT: ${{ secrets.AGENT_REPO_PAT }}
+          PPA_FEATURE: ${{ inputs.feature }}
+          PPA_CONTENT_COMMIT: ${{ inputs.content_commit }}
+          RECOVERY_MANUAL: ${{ inputs.recovery_manual_continuation }}
+        run: |
+          set -euo pipefail
+          test -n "${REPO_TOKEN:-}" || { echo "::error::Deployment REPO_TOKEN missing"; exit 1; }
+          echo "::add-mask::${REPO_TOKEN}"
+          content_http="$(curl -fsS -o /dev/null -w '%{http_code}' \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${REPO_TOKEN}" \
+            https://api.github.com/repos/conholdate/products.conholdate.com)" || {
+              echo "::error::Deployment content checkout token authentication failed"; exit 1;
+            }
+          test "$content_http" = 200 || { echo "::error::Deployment content token HTTP $content_http"; exit 1; }
+          echo "PPA_DOWNSTREAM_CONTENT_PREFLIGHT=pass"
+          if [[ -n "$PPA_FEATURE" && -n "$PPA_CONTENT_COMMIT" && "$RECOVERY_MANUAL" != true ]]; then
+            test -n "${AGENT_REPO_PAT:-}" || { echo "::error::PPA callback token missing"; exit 1; }
+            echo "::add-mask::${AGENT_REPO_PAT}"
+            agent_http="$(curl -fsS -o /dev/null -w '%{http_code}' \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${AGENT_REPO_PAT}" \
+              https://api.github.com/repos/conholdate/product-pages-agent/actions/workflows/ppa-weekly-feature-scheduler.yml)" || {
+                echo "::error::PPA callback token cannot read scheduler workflow"; exit 1;
+              }
+            test "$agent_http" = 200 || { echo "::error::PPA callback token HTTP $agent_http"; exit 1; }
+            echo "PPA_DOWNSTREAM_CALLBACK_PREFLIGHT=pass write_authorization_unexercised=true"
+          fi
+
       - name: Clean runner workspace
         shell: bash
         run: |
