@@ -304,3 +304,59 @@ jobs:
 
           print("PPA continuation callback dispatched.")
           PY
+      
+      # Observation only: no cleanup, deletion, scheduling or recovery mutations.
+      # Runs after the required PPA continuation step (when applicable).
+      - name: Post-deployment public retention assessment (dry run only)
+        if: ${{ success() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          DEPLOY_PLATFORM: ${{ inputs.platform }}
+          DEPLOY_CONTENT_COMMIT: ${{ inputs.content_commit }}
+          DEPLOY_SOURCE_RUN_ID: ${{ inputs.agent_cycle_run_id }}
+        run: |
+          set -euo pipefail
+          export GIT_OPTIONAL_LOCKS=0
+          site="$GITHUB_WORKSPACE/site"
+          target="$site/public"
+
+          echo "PPA_PUBLIC_RETENTION_MODE=read_only"
+          echo "PPA_PUBLIC_CLEANUP_AUTHORIZED=false"
+          echo "PPA_PUBLIC_DELETION_PERFORMED=false"
+
+          # Explicitly confine observations to this job's checked-out site.
+          test -d "$GITHUB_WORKSPACE" && test ! -L "$GITHUB_WORKSPACE"
+          test -d "$site" && test ! -L "$site"
+          test -d "$target" && test ! -L "$target"
+          workspace_real="$(realpath -e -- "$GITHUB_WORKSPACE")"
+          site_real="$(realpath -e -- "$site")"
+          target_real="$(realpath -e -- "$target")"
+          test "$site_real" = "$workspace_real/site"
+          test "$target_real" = "$workspace_real/site/public"
+          test "$(git -C "$site" rev-parse --show-toplevel)" = "$site_real"
+          test -z "$(git -C "$site" ls-files -- public)"
+          git -C "$site" check-ignore -q public/
+
+          content_head="$(git -C "$site" rev-parse --verify HEAD)"
+          if [ -n "$DEPLOY_CONTENT_COMMIT" ]; then
+            test "$content_head" = "$DEPLOY_CONTENT_COMMIT"
+          fi
+          bytes="$(du -sx -B1 -- "$target" | cut -f1)"
+          test "$bytes" -gt 0
+          echo "PPA_PUBLIC_OBSERVED_BYTES=$bytes"
+          echo "PPA_PUBLIC_CONTENT_HEAD=$content_head"
+
+          {
+            echo "### Post-deployment Hugo output — dry-run inventory"
+            echo ""
+            echo "- Run: \`$GITHUB_RUN_ID\`"
+            echo "- Platform: \`$DEPLOY_PLATFORM\`"
+            echo "- Source PPA run: \`${DEPLOY_SOURCE_RUN_ID:-not_supplied}\`"
+            echo "- Site commit: \`$content_head\`"
+            echo "- Output path: \`site/public\` (ignored; zero tracked files)"
+            echo "- Observed bytes: \`$bytes\`"
+            echo "- Cleanup authorized: **false**"
+            echo "- Deletion performed: **false**"
+            echo "- This diagnostic does not establish exclusive filesystem ownership or recovery clearance."
+          } >> "$GITHUB_STEP_SUMMARY"
